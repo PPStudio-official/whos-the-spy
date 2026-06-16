@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Company Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: #0d0d0d; color: #fff; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; max-width: 1000px; margin: 0 auto 30px auto; background: rgba(255,255,255,0.02); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
+        .company-meta { display: flex; align-items: center; gap: 15px; }
+        .comp-logo { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #00f2fe; }
+        .pub-btn { background: #01875f; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; text-decoration: none; font-size: 0.9rem; }
+        
+        .dashboard-container { max-width: 1000px; margin: 0 auto; }
+        h2 { margin-bottom: 20px; color: #aaa; font-size: 1.3rem; }
+        
+        .app-list-row { background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 15px; display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
+        .app-img { width: 50px; height: 50px; border-radius: 10px; object-fit: cover; }
+        .app-details { flex: 1; }
+        .app-name { font-weight: 700; font-size: 1.1rem; }
+        .app-desc-preview { font-size: 0.85rem; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px; }
+        
+        .action-btns { display: flex; gap: 10px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+        .edit-btn { background: #4facfe; color: #000; }
+        .delete-btn { background: #ff4b2b; color: #fff; }
+        
+        /* ADVANCED EDIT MODAL OVERLAY */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); justify-content: center; align-items: center; z-index: 100; padding: 20px; }
+        .modal-content { background: #141414; padding: 25px; border-radius: 16px; width: 100%; max-width: 450px; border: 1px solid #4facfe; display: flex; flex-direction: column; gap: 12px; max-height: 90vh; overflow-y: auto; }
+        .modal input, .modal textarea { background: #222; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 6px; outline: none; width: 100%; font-family: inherit; font-size: 0.95rem; }
+        .modal label { font-size: 0.8rem; color: #aaa; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px; }
+        .modal h3 { border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; color: #4facfe; }
+        .loading-text { color: #4facfe; text-align: center; font-weight: bold; display: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="company-meta">
+            <img id="header-logo" class="comp-logo" src="">
+            <h1 id="header-name">My Company</h1>
+        </div>
+        <a href="publish-app.html" class="pub-btn">+ Publish New App</a>
+    </header>
+
+    <div class="dashboard-container">
+        <h2>Your Published Applications</h2>
+        <div id="my-apps-grid"></div>
+    </div>
+
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <h3>Modify Application Assets</h3>
+            
+            <div>
+                <label>App Name</label>
+                <input type="text" id="edit-name" required>
+            </div>
+            
+            <div>
+                <label>Website Link (URL)</label>
+                <input type="url" id="edit-url" required>
+            </div>
+
+            <div>
+                <label>Update App Logo (Leave blank to keep old)</label>
+                <input type="file" id="edit-logo" accept="image/*">
+            </div>
+
+            <div>
+                <label>Update Preview Screenshots (Leave blank to keep old)</label>
+                <input type="file" id="edit-previews" accept="image/*" multiple>
+            </div>
+
+            <div>
+                <label>Description</label>
+                <textarea id="edit-desc" rows="4" required></textarea>
+            </div>
+
+            <div id="modal-loading" class="loading-text">Updating store assets... Please wait</div>
+
+            <div class="action-btns" style="margin-top: 10px;">
+                <button class="btn edit-btn" style="flex:1;" id="save-edit-btn">Apply Updates</button>
+                <button class="btn" style="background:#333; color:#fff; flex:1;" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyA0EjxsjmTDVXpr8vt1K-A64mn5J5_0vkQ", authDomain: "ppstudio-4cda2.firebaseapp.com", projectId: "ppstudio-4cda2", storageBucket: "ppstudio-4cda2.firebasestorage.app", messagingSenderId: "563185493942", appId: "1:563185493942:web:1a63bcbd5416c1bf2cc317" };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUID = null, targetEditId = null, oldLogo = "", oldPreviews = [];
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUID = user.uid;
+                const cSnap = await getDoc(doc(db, "companies", user.uid));
+                if(cSnap.exists()){
+                    document.getElementById('header-logo').src = cSnap.data().companyLogo;
+                    document.getElementById('header-name').innerText = cSnap.data().companyName;
+                    loadUserApps();
+                } else { window.location.href = "create-company.html"; }
+            } else { window.location.href = "home.html"; }
+        });
+
+        const fileToBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader(); reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result); reader.onerror = error => reject(error);
+        });
+
+        async function loadUserApps() {
+            const q = query(collection(db, "websites"), where("companyId", "==", currentUID));
+            const snap = await getDocs(q);
+            const container = document.getElementById('my-apps-grid'); container.innerHTML = "";
+
+            if(snap.empty) {
+                container.innerHTML = "<p style='color:#444;'>No apps published yet.</p>"; return;
+            }
+
+            snap.forEach(documentDoc => {
+                const data = documentDoc.data(); const id = documentDoc.id;
+                const row = document.createElement('div');
+                row.className = "app-list-row";
+                row.innerHTML = `
+                    <img class="app-img" src="${data.appLogo}">
+                    <div class="app-details">
+                        <div class="app-name">${data.name}</div>
+                        <div class="app-desc-preview">${data.description || ''}</div>
+                    </div>
+                    <div class="action-btns">
+                        <button class="btn edit-btn" id="edit-${id}">Edit All</button>
+                        <button class="btn delete-btn" id="del-${id}">Delete</button>
+                    </div>
+                `;
+                container.appendChild(row);
+
+                document.getElementById(`edit-${id}`).onclick = () => openEditModal(id, data);
+                document.getElementById(`del-${id}`).onclick = () => deleteApp(id);
+            });
+        }
+
+        function openEditModal(id, data) {
+            targetEditId = id;
+            oldLogo = data.appLogo;
+            oldPreviews = data.previews || [];
+            
+            document.getElementById('edit-name').value = data.name;
+            document.getElementById('edit-url').value = data.url || "";
+            document.getElementById('edit-desc').value = data.description || "";
+            
+            // Reset files inputs
+            document.getElementById('edit-logo').value = "";
+            document.getElementById('edit-previews').value = "";
+            
+            document.getElementById('edit-modal').style.display = "flex";
+        }
+
+        window.closeModal = function() { document.getElementById('edit-modal').style.display = "none"; }
+
+        document.getElementById('save-edit-btn').onclick = async () => {
+            if(!targetEditId) return;
+            document.getElementById('modal-loading').style.display = "block";
+
+            const newName = document.getElementById('edit-name').value;
+            const newUrl = document.getElementById('edit-url').value;
+            const newDesc = document.getElementById('edit-desc').value;
+            
+            const logoFileInput = document.getElementById('edit-logo').files[0];
+            const previewFilesInput = document.getElementById('edit-previews').files;
+
+            try {
+                let finalLogo = oldLogo;
+                if(logoFileInput) {
+                    finalLogo = await fileToBase64(logoFileInput);
+                }
+
+                let finalPreviews = oldPreviews;
+                if(previewFilesInput.length > 0) {
+                    finalPreviews = [];
+                    for(let file of previewFilesInput) {
+                        const b64 = await fileToBase64(file);
+                        finalPreviews.push(b64);
+                    }
+                }
+
+                await updateDoc(doc(db, "websites", targetEditId), {
+                    name: newName,
+                    url: newUrl,
+                    description: newDesc,
+                    appLogo: finalLogo,
+                    previews: finalPreviews
+                });
+
+                document.getElementById('modal-loading').style.display = "none";
+                closeModal();
+                loadUserApps();
+            } catch(e) {
+                alert("Update failed: " + e.message);
+                document.getElementById('modal-loading').style.display = "none";
+            }
+        };
+
+        async function deleteApp(id) {
+            if(confirm("Are you sure you want to permanently delete this web app?")) {
+                await deleteDoc(doc(db, "websites", id));
+                loadUserApps();
+            }
+        }
+    </script>
+</body>
+</html>
