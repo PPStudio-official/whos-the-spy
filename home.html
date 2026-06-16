@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Who's The Spy - Dashboard</title>
+    <style>
+        /* Reset and Adaptive Layout Setup */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0c10;
+            font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #ffffff;
+        }
+
+        /* Core structural wrapper */
+        .dashboard-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: radial-gradient(circle at center, #1f2833 0%, #0b0c10 100%);
+            position: relative;
+        }
+
+        /* Top Bar & Profile Action Center */
+        .top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .profile-trigger {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            background: rgba(31, 40, 51, 0.6);
+            padding: 8px 16px;
+            border-radius: 30px;
+            border: 1px solid rgba(69, 243, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .profile-trigger:hover {
+            border-color: #45f3ff;
+            box-shadow: 0 0 15px rgba(69, 243, 255, 0.2);
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            background-color: #45f3ff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #0b0c10;
+            font-weight: bold;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+        }
+
+        .agent-brief {
+            text-align: left;
+        }
+
+        .agent-brief .codename {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #ffffff;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .agent-brief .rank {
+            font-size: 0.75rem;
+            color: #c5a880;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Branding Header */
+        .main-header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .main-header h1 {
+            font-size: clamp(2.2rem, 8vw, 4rem);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ff3838;
+            text-shadow: 0 0 20px rgba(255, 56, 56, 0.3);
+        }
+
+        .main-header h1 span {
+            color: #ffffff;
+            text-shadow: none;
+        }
+
+        .main-header p {
+            color: #c5a880;
+            font-size: clamp(0.9rem, 3vw, 1.1rem);
+            margin-top: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Game Modes Responsive Layout Grid */
+        .modes-grid {
+            display: flex;
+            gap: 25px;
+            width: 100%;
+            max-width: 800px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .mode-card {
+            flex: 1;
+            background: rgba(26, 34, 46, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            text-decoration: none;
+            color: #ffffff;
+            transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 220px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        /* Pass and Play Theme */
+        .mode-card.pass-play:hover {
+            border-color: #45f3ff;
+            transform: translateY(-5px);
+            box-shadow: 0 0 30px rgba(69, 243, 255, 0.25);
+        }
+
+        /* Multiplayer Theme */
+        .mode-card.multiplayer:hover {
+            border-color: #ff3838;
+            transform: translateY(-5px);
+            box-shadow: 0 0 30px rgba(255, 56, 56, 0.25);
+        }
+
+        .mode-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .mode-card h3 {
+            font-size: clamp(1.3rem, 4vw, 1.8rem);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .mode-card.pass-play h3 { color: #45f3ff; }
+        .mode-card.multiplayer h3 { color: #ff3838; }
+
+        .mode-card p {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        /* Profile Slide-out Management Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 12, 16, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            justify-content: flex-start;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .profile-drawer {
+            width: 100%;
+            max-width: 380px;
+            height: 100%;
+            background: #1a222e;
+            border-right: 1px solid rgba(69, 243, 255, 0.3);
+            padding: 40px 30px;
+            display: flex;
+            flex-direction: column;
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .modal-overlay.active .profile-drawer {
+            transform: translateX(0);
+        }
+
+        .drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .drawer-header h2 {
+            color: #45f3ff;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 1.8rem;
+            cursor: pointer;
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #c5a880;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #0b0c10;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #45f3ff;
+        }
+
+        .save-btn {
+            width: 100%;
+            padding: 14px;
+            background: #45f3ff;
+            color: #0b0c10;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            margin-top: 10px;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            color: #ff3838;
+            border: 1px solid #ff3838;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            margin-top: auto; /* Pushes logout action to the bottom */
+            transition: all 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            background: #ff3838;
+            color: #ffffff;
+        }
+
+        .error-msg {
+            color: #ff3838;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            display: none;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            .modes-grid {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .mode-card {
+                min-height: 160px;
+                padding: 25px 20px;
+            }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <div class="top-bar">
+            <div class="profile-trigger" id="profile-trigger-btn">
+                <div class="avatar" id="profile-initial">-</div>
+                <div class="agent-brief">
+                    <div class="codename" id="profile-codename">Loading...</div>
+                    <div class="rank">Active Agent</div>
+                </div>
+            </div>
+        </div>
+
+        <header class="main-header">
+            <h1>Who's The <span>Spy</span></h1>
+            <p>Select Operation Mode</p>
+        </header>
+
+        <main class="modes-grid">
+            <a href="pp.html" class="mode-card pass-play">
+                <div class="mode-icon">📱</div>
+                <h3>Pass & Play</h3>
+                <p>Gather your friends offline around a single device to expose the hidden spy infiltrator.</p>
+            </a>
+
+            <a href="mp.html" class="mode-card multiplayer">
+                <div class="mode-icon">🌐</div>
+                <h3>Multiplayer</h3>
+                <p>Connect online to global operations and go head-to-head with remote operatives over servers.</p>
+            </a>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="profile-modal">
+        <div class="profile-drawer">
+            <div class="drawer-header">
+                <h2>Agent Profile</h2>
+                <button class="close-btn" id="close-modal-btn">&times;</button>
+            </div>
+
+            <form id="profile-update-form">
+                <div class="form-group">
+                    <label for="edit-username">Agent Codename</label>
+                    <input type="text" id="edit-username" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-dob">Date of Birth</label>
+                    <input type="date" id="edit-dob" required>
+                    <div class="error-msg" id="drawer-age-error">Invalid Configuration: Must be 13+.</div>
+                </div>
+                <button type="submit" class="save-btn">Update Profile</button>
+            </form>
+
+            <button class="logout-btn" id="logout-btn">Abort Session (Logout)</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // ⚠️ USE YOUR EXACT SAME CONFIGURATION CREDENTIALS AS USED IN AUTH.HTML
+   const firebaseConfig = {
+  apiKey: "AIzaSyCu6MtxYS4qRijMx7uj7XD9Hs4QAh2hpQY",
+  authDomain: "whoisspy-54c23.firebaseapp.com",
+  projectId: "whoisspy-54c23",
+  storageBucket: "whoisspy-54c23.firebasestorage.app",
+  messagingSenderId: "924220567982",
+  appId: "1:924220567982:web:063786b47d4d61a738983f",
+  measurementId: "G-3SVDTL3F9F"
+};
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let activeUser = null;
+
+        // Route Guard Authentication Check on Page Load
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                // Not authenticated -> Boot user out to access control screen
+                window.location.href = 'auth.html';
+            } else {
+                activeUser = user;
+                await loadAgentProfile(user.uid);
+            }
+        });
+
+        // Pull Profile data from Cloud Firestore Database
+        async function loadAgentProfile(uid) {
+            try {
+                const docRef = doc(db, "users", uid);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    
+                    // Render Top Left Navigation elements
+                    document.getElementById('profile-codename').textContent = data.displayName;
+                    document.getElementById('profile-initial').textContent = data.displayName.charAt(0);
+
+                    // Hydrate Modal Input Forms
+                    document.getElementById('edit-username').value = data.displayName;
+                    document.getElementById('edit-dob').value = data.dob;
+                }
+            } catch (err) {
+                console.error("Failed to query profile document:", err);
+            }
+        }
+
+        // Drawer Presentation Toggle Code
+        const modalOverlay = document.getElementById('profile-modal');
+        document.getElementById('profile-trigger-btn').addEventListener('click', () => modalOverlay.classList.add('active'));
+        document.getElementById('close-modal-btn').addEventListener('click', () => modalOverlay.classList.remove('active'));
+
+        // Handle Profile Modification Updates
+        document.getElementById('profile-update-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const ageError = document.getElementById('drawer-age-error');
+            ageError.style.display = 'none';
+
+            const newName = document.getElementById('edit-username').value.trim();
+            const newDobValue = document.getElementById('edit-dob').value;
+
+            // Compute Age Limits
+            const dob = new Date(newDobValue);
+            const today = new Date();
+            let age = today.getFullYear() - dob.getFullYear();
+            const monthDiff = today.getMonth() - dob.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
+
+            if (age < 13) {
+                ageError.style.display = 'block';
+                return;
+            }
+
+            if (!activeUser) return;
+
+            try {
+                const docRef = doc(db, "users", activeUser.uid);
+                await updateDoc(docRef, {
+                    displayName: newName,
+                    dob: newDobValue
+                });
+
+                // Update on-screen dashboard labels immediately without refreshing
+                document.getElementById('profile-codename').textContent = newName;
+                document.getElementById('profile-initial').textContent = newName.charAt(0);
+                
+                modalOverlay.classList.remove('active');
+                alert("Agent configuration optimized successfully.");
+            } catch (error) {
+                alert("Error updating profile: " + error.message);
+            }
+        });
+
+        // Handle Sign Out Process
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            if (confirm("Confirming exit authorization? Active session will close.")) {
+                try {
+                    await signOut(auth);
+                    window.location.href = 'auth.html';
+                } catch (err) {
+                    alert("Sign out error: " + err.message);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Who's The Spy - Authentication</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0c10;
+            font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: radial-gradient(circle at center, #1f2833 0%, #0b0c10 100%);
+        }
+
+        .auth-card {
+            background-color: rgba(26, 34, 46, 0.85);
+            border: 1px solid #45f3ff;
+            border-radius: 16px;
+            padding: 40px 30px;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(69, 243, 255, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        h2 {
+            color: #ffffff;
+            font-size: clamp(1.8rem, 5vw, 2.3rem);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        h2 span {
+            color: #ff3838;
+        }
+
+        p.subtitle {
+            color: #c5a880;
+            font-size: 0.95rem;
+            margin-bottom: 30px;
+        }
+
+        .google-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: #ffffff;
+            color: #1f2833;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .google-btn:hover {
+            background-color: #f1f1f1;
+            transform: translateY(-2px);
+        }
+
+        .google-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .options-row {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            margin-top: 20px;
+            color: #c5a880;
+            font-size: 0.9rem;
+        }
+
+        .options-row input {
+            margin-right: 8px;
+            accent-color: #45f3ff;
+            cursor: pointer;
+        }
+
+        .onboard-form {
+            display: none;
+            text-align: left;
+            margin-top: 25px;
+            border-top: 1px solid rgba(69, 243, 255, 0.2);
+            padding-top: 25px;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .input-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            color: #45f3ff;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+
+        input[type="text"], input[type="date"] {
+            width: 100%;
+            padding: 12px;
+            background-color: #0b0c10;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input[type="text"]:focus, input[type="date"]:focus {
+            border-color: #45f3ff;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: #ff3838;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(255, 56, 56, 0.3);
+        }
+
+        .submit-btn:hover {
+            background-color: #e02424;
+        }
+
+        .error-msg {
+            color: #ff3838;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <div class="auth-card">
+            <h2>Who's The <span>Spy</span></h2>
+            <p class="subtitle" id="auth-subtitle">Identify yourself to join the agency.</p>
+
+            <button class="google-btn" id="google-login-btn">
+                <svg class="google-icon" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Sign in with Google
+            </button>
+
+            <div class="options-row" id="remember-row">
+                <label><input type="checkbox" id="remember-me" checked> Remember Me</label>
+            </div>
+
+            <form class="onboard-form" id="onboard-form">
+                <div class="input-group">
+                    <label for="username">Agent Name</label>
+                    <input type="text" id="username" required placeholder="Enter codename">
+                </div>
+                <div class="input-group">
+                    <label for="dob">Date of Birth</label>
+                    <input type="date" id="dob" required>
+                    <div class="error-msg" id="age-error">Access Denied: You must be 13 years or older to play.</div>
+                </div>
+                <button type="submit" class="submit-btn">Complete Profile</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, setPersistence, browserLocalPersistence, browserSessionPersistence, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // ⚠️ REPLACE THIS ENTIRE CONFIG WITH YOUR ACTUAL COPIED DETAILS FROM FIREBASE CONSOLE
+const firebaseConfig = {
+  apiKey: "AIzaSyCu6MtxYS4qRijMx7uj7XD9Hs4QAh2hpQY",
+  authDomain: "whoisspy-54c23.firebaseapp.com",
+  projectId: "whoisspy-54c23",
+  storageBucket: "whoisspy-54c23.firebasestorage.app",
+  messagingSenderId: "924220567982",
+  appId: "1:924220567982:web:063786b47d4d61a738983f",
+  measurementId: "G-3SVDTL3F9F"
+};
+
+        // Initialize App instances
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        let currentFirebaseUser = null;
+
+        // Auto-Monitor Session Management on Startup
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // If they have structural data in Firestore, forward immediately
+                const docRef = doc(db, "users", user.uid);
+                const docSnap = await getDoc(docRef);
+                
+                if (docSnap.exists()) {
+                    window.location.href = 'home.html';
+                }
+            }
+        });
+
+        // Trigger Google Auth Setup
+        document.getElementById('google-login-btn').addEventListener('click', async () => {
+            const rememberMe = document.getElementById('remember-me').checked;
+            
+            try {
+                // Define persistence type dynamically based on "Remember Me" checkbox
+                await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+                
+                const result = await signInWithPopup(auth, provider);
+                currentFirebaseUser = result.user;
+
+                // Validate if profile documents already exist for this user ID
+                const docRef = doc(db, "users", currentFirebaseUser.uid);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    window.location.href = 'home.html';
+                } else {
+                    // Reveal onboarding forms if user database entries are missing
+                    document.getElementById('google-login-btn').style.display = 'none';
+                    document.getElementById('remember-row').style.display = 'none';
+                    document.getElementById('auth-subtitle').textContent = "Complete your agency profile registration.";
+                    document.getElementById('onboard-form').style.display = 'block';
+                }
+            } catch (error) {
+                console.error("Authentication broken: ", error.message);
+                alert("Login Error: " + error.message);
+            }
+        });
+
+        // Form profile compilation handler
+        document.getElementById('onboard-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const ageError = document.getElementById('age-error');
+            ageError.style.display = 'none';
+
+            const name = document.getElementById('username').value.trim();
+            const dobValue = document.getElementById('dob').value;
+
+            if (!dobValue || !currentFirebaseUser) return;
+
+            // Age Check Verification Sequence
+            const dob = new Date(dobValue);
+            const today = new Date();
+            let age = today.getFullYear() - dob.getFullYear();
+            const monthDiff = today.getMonth() - dob.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+                age--;
+            }
+
+            if (age < 13) {
+                ageError.style.display = 'block';
+                return;
+            }
+
+            try {
+                // Commit complete data structure to Firestore Database
+                await setDoc(doc(db, "users", currentFirebaseUser.uid), {
+                    uid: currentFirebaseUser.uid,
+                    email: currentFirebaseUser.email,
+                    displayName: name,
+                    dob: dobValue,
+                    createdAt: new Date().toISOString()
+                });
+
+                window.location.href = 'home.html';
+            } catch (error) {
+                console.error("Firestore submission failed: ", error);
+                alert("Profile Save Error: " + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

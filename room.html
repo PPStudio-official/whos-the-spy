@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Who's The Spy - Lobby Room</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0c10;
+            font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #ffffff;
+        }
+
+        .wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: radial-gradient(circle at center, #1f2833 0%, #0b0c10 100%);
+            position: relative;
+        }
+
+        .room-top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .exit-btn {
+            background: transparent;
+            border: 1px solid #ff3838;
+            color: #ff3838;
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .exit-btn:hover {
+            background: #ff3838;
+            color: white;
+            box-shadow: 0 0 15px rgba(255, 56, 56, 0.3);
+        }
+
+        .room-badge {
+            background: rgba(69, 243, 255, 0.1);
+            border: 1px solid #45f3ff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            letter-spacing: 1px;
+        }
+
+        .room-badge span { color: #45f3ff; font-weight: bold; }
+
+        .lobby-card {
+            background-color: rgba(26, 34, 46, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            backdrop-filter: blur(10px);
+            margin-top: 40px;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            color: #c5a880;
+        }
+
+        .player-list {
+            background: #0b0c10;
+            border-radius: 10px;
+            padding: 10px;
+            min-height: 220px;
+            margin-bottom: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .player-slot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 18px;
+            background: rgba(31, 40, 51, 0.8);
+            border-radius: 8px;
+            border-left: 4px solid rgba(255,255,255,0.2);
+        }
+
+        .player-slot.is-host { border-left-color: #ff3838; }
+        .player-slot.is-ready { border-left-color: #2ecc71; }
+        .player-info { display: flex; align-items: center; gap: 10px; }
+        .host-tag { font-size: 0.7rem; background: #ff3838; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: bold;}
+        
+        .status-indicator { font-size: 0.85rem; text-transform: uppercase; font-weight: bold; }
+        .status-indicator.ready { color: #2ecc71; }
+        .status-indicator.waiting { color: #c5a880; }
+
+        .action-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .btn-start { background-color: #ff3838; color: white; }
+        .btn-ready { background-color: #45f3ff; color: #0b0c10; }
+        .btn-ready.active-ready { background-color: #2ecc71; color: white; }
+
+        /* Custom Popup styling */
+        .custom-popup-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 12, 16, 0.85);
+            backdrop-filter: blur(5px);
+            z-index: 200;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .custom-popup-overlay.active { opacity: 1; pointer-events: auto; }
+        .popup-box {
+            background: #1a222e;
+            border: 2px solid #ff3838;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%; max-width: 380px;
+            text-align: center;
+        }
+        .popup-box h3 { color: #ff3838; text-transform: uppercase; margin-bottom: 10px;}
+        .popup-box p { color: #ffffff; font-size: 0.95rem; margin-bottom: 20px;}
+        .popup-close { background: #ff3838; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;}
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <div class="room-top-bar">
+            <button class="exit-btn" id="exit-room-action-btn">Leave Room</button>
+            <div class="room-badge">ROOM CODE: <span id="room-code-display">-----</span></div>
+        </div>
+
+        <div class="lobby-card">
+            <h2>Operatives Assembled (<span id="player-count">0</span>/4)</h2>
+            
+            <div id="host-tools-slot" style="margin-bottom: 15px; display: none;">
+                <button class="action-btn" style="background-color: #c5a880; color: #0b0c10; padding: 10px; font-size: 0.85rem;" id="fill-bots-btn">
+                    🤖 Fill Remaining with Bots
+                </button>
+            </div>
+
+            <div class="player-list" id="player-roster-container"></div>
+            <div id="dynamic-action-slot"></div>
+        </div>
+    </div>
+
+    <div class="custom-popup-overlay" id="alert-popup-overlay">
+        <div class="popup-box">
+            <h3 id="popup-title">Alert</h3>
+            <p id="popup-message">Message details go here.</p>
+            <button class="popup-close" onclick="closeCustomPopup()">Acknowledge</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, deleteDoc, getDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // ⚠️ ENFORCE YOUR EXACT CONFIGURATION CREDENTIAL HOOKS HERE
+const firebaseConfig = {
+  apiKey: "AIzaSyCu6MtxYS4qRijMx7uj7XD9Hs4QAh2hpQY",
+  authDomain: "whoisspy-54c23.firebaseapp.com",
+  projectId: "whoisspy-54c23",
+  storageBucket: "whoisspy-54c23.firebasestorage.app",
+  messagingSenderId: "924220567982",
+  appId: "1:924220567982:web:063786b47d4d61a738983f",
+  measurementId: "G-3SVDTL3F9F"
+};
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let activeAgent = null;
+        let activeRoomCode = null;
+        let isHostUser = false;
+        let currentRoomPlayersList = [];
+        let roomSubscriptionUnsubscribe = null;
+
+        // Parse hash configuration values to prevent rewrite drops
+        if (window.location.hash && window.location.hash.includes('code=')) {
+            activeRoomCode = window.location.hash.split('code=')[1];
+        }
+        if (activeRoomCode) {
+            activeRoomCode = activeRoomCode.substring(0, 5);
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user || !activeRoomCode) {
+                window.location.href = 'mp.html';
+                return;
+            }
+            activeAgent = user;
+            document.getElementById('room-code-display').textContent = activeRoomCode;
+            
+            await initializeLobbyEntry();
+        });
+
+        async function initializeLobbyEntry() {
+            const roomRef = doc(db, "rooms", activeRoomCode);
+            
+            try {
+                const initialSnap = await getDoc(roomRef);
+                if (!initialSnap.exists()) {
+                    window.location.href = 'mp.html';
+                    return;
+                }
+
+                const roomData = initialSnap.data();
+                isHostUser = (roomData.hostUid === activeAgent.uid);
+                
+                // Toggle context parameters for bot components
+                const hostTools = document.getElementById('host-tools-slot');
+                if (isHostUser) {
+                    hostTools.style.display = 'block';
+                    document.getElementById('fill-bots-btn').onclick = () => injectAIBots(roomRef);
+                } else {
+                    hostTools.style.display = 'none';
+                }
+
+                const exitBtn = document.getElementById('exit-room-action-btn');
+                exitBtn.textContent = isHostUser ? "End Room" : "Leave Room";
+                exitBtn.onclick = isHostUser ? terminiateRoomSession : removeSelfFromRoomSession;
+
+                const userSnap = await getDoc(doc(db, "users", activeAgent.uid));
+                const agentName = userSnap.exists() ? userSnap.data().displayName : "Anonymous Operative";
+                
+                const selfObject = {
+                    uid: activeAgent.uid,
+                    name: agentName,
+                    isHost: isHostUser,
+                    ready: isHostUser
+                };
+
+                const existingPlayers = roomData.players || [];
+                const alreadyInRoom = existingPlayers.some(p => p.uid === activeAgent.uid);
+
+                if (!alreadyInRoom) {
+                    if (existingPlayers.length >= 4) {
+                        alert("This room is full! (Max 4 players)");
+                        window.location.href = 'mp.html';
+                        return;
+                    }
+                    await updateDoc(roomRef, {
+                        players: arrayUnion(selfObject)
+                    });
+                }
+
+                setupRealtimeLobbyListener();
+
+            } catch (err) {
+                console.error("Lobby boot sequence failure: ", err);
+                window.location.href = 'mp.html';
+            }
+        }
+
+        async function injectAIBots(roomRef) {
+            const currentLength = currentRoomPlayersList.length;
+            if (currentLength >= 4) {
+                triggerCustomPopup("Lobby Full", "There are no empty slots available for synthetic bots.");
+                return;
+            }
+
+            const slotsToFill = 4 - currentLength;
+            const botNamesPool = ["Bot Alpha", "Bot Omega", "Bot Cipher", "Bot Ghost", "Bot Phantom", "Bot Shadow"];
+            
+            const shuffledNames = botNamesPool.sort(() => 0.5 - Math.random());
+            const newBots = [];
+
+            for (let i = 0; i < slotsToFill; i++) {
+                const botUid = "bot_" + Math.random().toString(36).substring(2, 9);
+                newBots.push({
+                    uid: botUid,
+                    name: shuffledNames[i],
+                    isHost: false,
+                    ready: true // AI configurations are auto-ready locked
+                });
+            }
+
+            try {
+                const updatedPlayersList = [...currentRoomPlayersList, ...newBots];
+                await updateDoc(roomRef, {
+                    players: updatedPlayersList
+                });
+            } catch (err) {
+                console.error("Failed to inject AI components:", err);
+            }
+        }
+
+        function setupRealtimeLobbyListener() {
+            const roomRef = doc(db, "rooms", activeRoomCode);
+
+            roomSubscriptionUnsubscribe = onSnapshot(roomRef, (snapshot) => {
+                if (!snapshot.exists()) {
+                    if (roomSubscriptionUnsubscribe) roomSubscriptionUnsubscribe();
+                    triggerCustomPopup("Room Closed", "The host dismantled this staging room lobby server connection.", () => {
+                        window.location.href = 'mp.html';
+                    });
+                    return;
+                }
+
+                const data = snapshot.data();
+                currentRoomPlayersList = data.players || [];
+                
+                const stillInRoom = currentRoomPlayersList.some(p => p.uid === activeAgent.uid);
+                if (!stillInRoom && !isHostUser) {
+                    if (roomSubscriptionUnsubscribe) roomSubscriptionUnsubscribe();
+                    window.location.href = 'mp.html';
+                    return;
+                }
+
+                if (data.status === "playing") {
+                    if (roomSubscriptionUnsubscribe) roomSubscriptionUnsubscribe();
+                    window.location.href = `match.html#code=${activeRoomCode}`;
+                    return;
+                }
+
+                if (data.nudgeTargetUid === activeAgent.uid) {
+                    triggerCustomPopup("Operational Order", "The commander is waiting on you! Toggle your status to READY immediately.");
+                    updateDoc(roomRef, { nudgeTargetUid: "" });
+                }
+
+                renderPlayerRosterUI();
+                renderControlActionButtons(roomRef);
+            });
+        }
+
+        function renderPlayerRosterUI() {
+            document.getElementById('player-count').textContent = currentRoomPlayersList.length;
+            const container = document.getElementById('player-roster-container');
+            container.innerHTML = '';
+
+            currentRoomPlayersList.forEach(player => {
+                const slot = document.createElement('div');
+                slot.className = `player-slot ${player.isHost ? 'is-host' : ''} ${player.ready ? 'is-ready' : ''}`;
+                
+                slot.innerHTML = `
+                    <div class="player-info">
+                        <span>${player.name}</span>
+                        ${player.isHost ? '<span class="host-tag">Host</span>' : ''}
+                    </div>
+                    <div class="status-indicator ${player.ready ? 'ready' : 'waiting'}">
+                        ${player.ready ? 'Ready' : 'Waiting'}
+                    </div>
+                `;
+                container.appendChild(slot);
+            });
+        }
+
+        function renderControlActionButtons(roomRef) {
+            const slot = document.getElementById('dynamic-action-slot');
+            slot.innerHTML = '';
+
+            if (isHostUser) {
+                const btn = document.createElement('button');
+                btn.className = "action-btn btn-start";
+                btn.textContent = "Commence Matchmaking";
+                btn.onclick = () => evaluateHostStartConditions(roomRef);
+                slot.appendChild(btn);
+            } else {
+                const btn = document.createElement('button');
+                const selfData = currentRoomPlayersList.find(p => p.uid === activeAgent.uid);
+                const isReady = selfData ? selfData.ready : false;
+
+                btn.className = `action-btn btn-ready ${isReady ? 'active-ready' : ''}`;
+                btn.textContent = isReady ? "Operational Ready Status" : "Engage Ready State";
+                btn.onclick = () => toggleJoinerReadyState(roomRef, !isReady);
+                slot.appendChild(btn);
+            }
+        }
+
+        async function toggleJoinerReadyState(roomRef, targetState) {
+            const updated = currentRoomPlayersList.map(p => {
+                if (p.uid === activeAgent.uid) p.ready = targetState;
+                return p;
+            });
+            await updateDoc(roomRef, { players: updated });
+        }
+
+        async function evaluateHostStartConditions(roomRef) {
+            if (currentRoomPlayersList.length < 4) {
+                triggerCustomPopup("Deployment Blocked", "Insufficient operatives inside base grid. Exactly 4 active players are required to begin.");
+                return;
+            }
+
+            const unreadyAgent = currentRoomPlayersList.find(p => !p.ready);
+            if (unreadyAgent) {
+                triggerCustomPopup("Staging Halt", `Cannot dispatch mission files. Operative "${unreadyAgent.name}" is not ready.`);
+                await updateDoc(roomRef, { nudgeTargetUid: unreadyAgent.uid });
+                return;
+            }
+
+            await updateDoc(roomRef, { status: "playing" });
+        }
+
+        async function terminiateRoomSession() {
+            if (confirm("Confirming absolute grid destruction? All joiners will be detached.")) {
+                if(roomSubscriptionUnsubscribe) roomSubscriptionUnsubscribe();
+                await deleteDoc(doc(db, "rooms", activeRoomCode));
+                window.location.href = 'mp.html';
+            }
+        }
+
+        async function removeSelfFromRoomSession() {
+            if(roomSubscriptionUnsubscribe) roomSubscriptionUnsubscribe();
+            const roomRef = doc(db, "rooms", activeRoomCode);
+            const filtered = currentRoomPlayersList.filter(p => p.uid !== activeAgent.uid);
+            await updateDoc(roomRef, { players: filtered });
+            window.location.href = 'mp.html';
+        }
+
+        let currentPopupCallback = null;
+        window.triggerCustomPopup = function(title, msg, callback = null) {
+            document.getElementById('popup-title').textContent = title;
+            document.getElementById('popup-message').textContent = msg;
+            document.getElementById('alert-popup-overlay').classList.add('active');
+            currentPopupCallback = callback;
+        }
+
+        window.closeCustomPopup = function() {
+            document.getElementById('alert-popup-overlay').classList.remove('active');
+            if (currentPopupCallback) currentPopupCallback();
+        }
+    </script>
+</body>
+</html>

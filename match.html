@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Who's The Spy - Arena</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            width: 100%; height: 100%; overflow: hidden;
+            background-color: #0b0c10;
+            font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #ffffff;
+        }
+        .wrapper {
+            width: 100%; height: 100%; display: flex;
+            justify-content: center; align-items: center; padding: 20px;
+            background: radial-gradient(circle at center, #1f2833 0%, #0b0c10 100%);
+            position: relative;
+        }
+
+        /* Persistent Top-Left Secret Word Badge */
+        .sticky-word-badge {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(69, 243, 255, 0.15);
+            border: 1px solid #45f3ff;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            z-index: 100;
+            display: none; /* Controlled via script */
+        }
+        .sticky-word-badge span { color: #45f3ff; font-size: 1rem; margin-left: 4px; }
+
+        /* Game Phases Master Frame */
+        .game-card {
+            background-color: rgba(26, 34, 46, 0.9);
+            border: 1px solid rgba(69, 243, 255, 0.2);
+            border-radius: 16px; padding: 25px;
+            width: 100%; max-width: 500px; height: 85vh;
+            display: flex; flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        .phase-view { display: none; flex-direction: column; height: 100%; }
+        .phase-view.active { display: flex; }
+
+        /* Timer Header Elements */
+        .timer-banner {
+            font-size: 1.2rem; font-weight: bold; letter-spacing: 1px;
+            color: #45f3ff; margin-bottom: 15px; text-transform: uppercase;
+        }
+        .timer-banner.panic { color: #ff3838; animation: pulse 0.5s infinite alternate; }
+
+        /* Phase 1: Reveal Overlay Frame */
+        .word-reveal-box {
+            flex: 1; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
+        .secret-word-bubble {
+            background: #0b0c10; border: 2px dashed #45f3ff;
+            padding: 25px 40px; border-radius: 12px;
+            font-size: 2rem; font-weight: bold; color: #45f3ff;
+            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 25px;
+        }
+        .countdown-number { font-size: 4rem; font-weight: 900; color: #ff3838; }
+
+        /* Phase 2 & 3: Arena Live Chat Systems Layout */
+        .turn-indicator {
+            background: rgba(69, 243, 255, 0.1); border: 1px solid #45f3ff;
+            padding: 10px; border-radius: 8px; margin-bottom: 15px;
+            font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .turn-indicator span { color: #ff3838; font-weight: bold; }
+
+        .chat-log-display {
+            flex: 1; background: #0b0c10; border-radius: 8px;
+            padding: 15px; overflow-y: auto; margin-bottom: 15px;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .chat-msg {
+            background: rgba(31, 40, 51, 0.6); padding: 10px 14px;
+            border-radius: 8px; font-size: 0.95rem; line-height: 1.4;
+            max-width: 85%; align-self: flex-start;
+        }
+        .chat-msg.self { background: rgba(69, 243, 255, 0.15); align-self: flex-end; border-right: 3px solid #45f3ff; }
+        .chat-msg .sender-tag { font-size: 0.75rem; font-weight: bold; color: #c5a880; margin-bottom: 3px; }
+
+        .chat-input-row { display: flex; gap: 10px; }
+        .chat-input-row input {
+            flex: 1; padding: 12px; background: #0b0c10;
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+            color: white; outline: none; font-size: 1rem;
+        }
+        .chat-input-row input:focus { border-color: #45f3ff; }
+        .chat-input-row input:disabled { background: #1a222e; color: #55606e; cursor: not-allowed; }
+        .chat-send-btn {
+            background: #45f3ff; color: #0b0c10; border: none;
+            padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer;
+            text-transform: uppercase;
+        }
+        .chat-send-btn:disabled { background: #2c3540; color: #55606e; cursor: not-allowed; }
+
+        /* Phase 4: Voting Dashboard Grid Frame */
+        .voting-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .vote-node-btn {
+            background: #1f2833; border: 1px solid rgba(255,255,255,0.15);
+            padding: 20px; color: white; border-radius: 8px; font-weight: bold;
+            text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+        }
+        .vote-node-btn:hover:not(:disabled) { border-color: #ff3838; background: rgba(255,56,56,0.1); }
+        .vote-node-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Phase 5: Verdict Presentation Elements */
+        .verdict-banner { font-size: 2.2rem; font-weight: 900; margin-bottom: 15px; text-transform: uppercase; }
+        .v-draw { color: #f1c40f; text-shadow: 0 0 15px rgba(241,196,15,0.3); }
+        .v-crew { color: #2ecc71; text-shadow: 0 0 15px rgba(46,204,113,0.3); }
+        .v-spy { color: #ff3838; text-shadow: 0 0 15px rgba(255,56,56,0.3); }
+
+        .data-summary { background: #0b0c10; padding: 20px; border-radius: 8px; text-align: left; margin: 20px 0; }
+        .summary-line { margin-bottom: 10px; font-size: 1rem; color: #ffffff; }
+        .summary-line span { color: #45f3ff; font-weight: bold; }
+        .summary-line .spy-highlight { color: #ff3838; }
+
+        .action-footer { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
+        .btn {
+            width: 100%; padding: 14px; border: none; border-radius: 6px;
+            font-size: 1rem; font-weight: bold; text-transform: uppercase; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-next { background: #2ecc71; color: white; }
+        .btn-exit { background: transparent; border: 1px solid #ff3838; color: #ff3838; }
+        .btn-exit:hover { background: #ff3838; color: white; }
+
+        @keyframes pulse { from { opacity: 1; } to { opacity: 0.6; } }
+    </style>
+</head>
+<body>
+
+    <!-- Sticky Top-Left Word Display Badge -->
+    <div class="sticky-word-badge" id="arena-sticky-word-badge">Word:<span id="arena-sticky-word-val">LOCKED</span></div>
+
+    <div class="wrapper">
+        <div class="game-card">
+
+            <!-- PHASE 1: LOAD & REVEAL SYSTEM OVERLAY -->
+            <div id="phase-reveal" class="phase-view active">
+                <div class="word-reveal-box">
+                    <p style="color: #c5a880; text-transform:uppercase; margin-bottom:10px; letter-spacing:1px;">Your Private Keyword Assignment</p>
+                    <div class="secret-word-bubble" id="local-word-display">LOCKED</div>
+                    <p style="color: rgba(255,255,255,0.4); font-size:0.85rem; margin-bottom:30px;">Do not let neighboring agents inspect your interface monitor.</p>
+                    <div class="countdown-number" id="reveal-countdown-node">5</div>
+                </div>
+            </div>
+
+            <!-- PHASE 2 & 3: ARENA MAIN PLAY AND CHAT LAYOUT FRAME -->
+            <div id="phase-discussion" class="phase-view">
+                <div class="timer-banner" id="game-timer-banner">Turn Phase</div>
+                <div class="turn-indicator" id="game-turn-prompt-box">System Syncing...</div>
+                
+                <div class="chat-log-display" id="arena-chat-container"></div>
+                
+                <div class="chat-input-row">
+                    <input type="text" id="arena-chat-input" placeholder="Type explanation details..." disabled autocomplete="off">
+                    <button class="chat-send-btn" id="arena-chat-send" disabled>Send</button>
+                </div>
+            </div>
+
+            <!-- PHASE 4: SIMULTANEOUS EXECUTIVE VOTING FRAME -->
+            <div id="phase-voting" class="phase-view">
+                <div class="warning-text" style="color:#ff3838; font-weight:bold; font-size:1.3rem; margin-bottom:10px; text-transform:uppercase;">Secret Verdict Selection</div>
+                <p style="color:#c5a880; margin-bottom:20px;">Cast your private vote token targeting the hidden imposter spy suspect:</p>
+                <div class="voting-grid" id="arena-voting-grid"></div>
+            </div>
+
+            <!-- PHASE 5: END GAME SUMMARY PRESENTATION SCOREBOARD -->
+            <div id="phase-results" class="phase-view">
+                <div class="verdict-banner" id="verdict-title-banner">MATCH CONCLUDED</div>
+                
+                <div class="data-summary">
+                    <div class="summary-line">Ejected Suspect Target: <span id="summary-voted-target">-</span></div>
+                    <div class="summary-line">Actual Spy Infiltrator: <span id="summary-actual-spy" class="spy-highlight">-</span></div>
+                    <div class="summary-line">Civilian Staging Word: <span id="summary-civ-word">-</span></div>
+                    <div class="summary-line">Spy Infiltrator Word: <span id="summary-spy-word" class="spy-highlight">-</span></div>
+                </div>
+
+                <div class="action-footer" id="result-controls-slot"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+ const firebaseConfig = {
+  apiKey: "AIzaSyCu6MtxYS4qRijMx7uj7XD9Hs4QAh2hpQY",
+  authDomain: "whoisspy-54c23.firebaseapp.com",
+  projectId: "whoisspy-54c23",
+  storageBucket: "whoisspy-54c23.firebasestorage.app",
+  messagingSenderId: "924220567982",
+  appId: "1:924220567982:web:063786b47d4d61a738983f",
+  measurementId: "G-3SVDTL3F9F"
+};
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let activeAgent = null;
+        let activeRoomCode = null;
+        let isHostUser = false;
+        let currentPlayers = [];
+        let roomUnsubscribe = null;
+        let localRoleObject = null;
+        let trackingTimerInterval = null;
+        let botActionTimeout = null;
+
+        const botPhrases = [
+            "My assignment feels completely ordinary.", "I have an interesting clue strategy to share.",
+            "I am innocent, tracking clues closely.", "My word fits the theme perfectly.",
+            "No suspicion here, I am a civilian.", "The hint process matches standard targets."
+        ];
+
+        function playPepSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = "sine"; osc.frequency.setValueAtTime(880, ctx.currentTime);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(); osc.stop(ctx.currentTime + 0.1);
+            } catch(e) { console.log("Audio contextual blockages."); }
+        }
+
+        const defaultPool = [
+            { civilian: "Laptop", spy: "Computer" }, { civilian: "Whisper", spy: "Shout" },
+            { civilian: "Diamond", spy: "Crystal" }, { civilian: "Forest", spy: "Jungle" }
+        ];
+
+        async function fetchNewWordPair() {
+            try {
+                const res = await fetch('https://random-word-form.herokuapp.com/random/noun');
+                const data = await res.json(); const civ = data[0].toLowerCase();
+                const res2 = await fetch('https://random-word-form.herokuapp.com/random/noun');
+                const data2 = await res2.json(); const spy = data2[0].toLowerCase();
+                return civ !== spy ? { civilian: civ, spy: spy } : defaultPool[Math.floor(Math.random()*defaultPool.length)];
+            } catch(e) { return defaultPool[Math.floor(Math.random()*defaultPool.length)]; }
+        }
+
+        if (window.location.hash && window.location.hash.includes('code=')) {
+            activeRoomCode = window.location.hash.split('code=')[1].substring(0, 5);
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user || !activeRoomCode) { window.location.href = 'mp.html'; return; }
+            activeAgent = user;
+            initArenaSession();
+        });
+
+        async function initArenaSession() {
+            const roomRef = doc(db, "rooms", activeRoomCode);
+            const snap = await getDoc(roomRef);
+            if (!snap.exists()) { window.location.href = 'mp.html'; return; }
+
+            const data = snap.data();
+            isHostUser = (data.hostUid === activeAgent.uid);
+            currentPlayers = data.players || [];
+
+            if (isHostUser && data.status === "playing") {
+                const words = await fetchNewWordPair();
+                const spyIndex = Math.floor(Math.random() * 4);
+                
+                const randomizedRoles = currentPlayers.map((player, idx) => {
+                    const isSpy = (idx === spyIndex);
+                    return {
+                        ...player,
+                        role: isSpy ? "Spy" : "Civilian",
+                        word: isSpy ? words.spy : words.civilian,
+                        vote: "",
+                        readyForNext: false
+                    };
+                });
+
+                await updateDoc(roomRef, {
+                    players: randomizedRoles,
+                    gameState: "reveal",
+                    currentTurnIdx: 0,
+                    chatMessages: [],
+                    timerSeconds: 5,
+                    wordsCache: words
+                });
+            }
+
+            roomUnsubscribe = onSnapshot(roomRef, (docSnap) => {
+                if (!docSnap.exists()) { roomUnsubscribe(); window.location.href = 'mp.html'; return; }
+                processGlobalStateData(docSnap.data(), roomRef);
+            });
+        }
+
+        function processGlobalStateData(roomData, roomRef) {
+            currentPlayers = roomData.players || [];
+            localRoleObject = currentPlayers.find(p => p.uid === activeAgent.uid);
+
+            if (!localRoleObject) { roomUnsubscribe(); window.location.href = 'mp.html'; return; }
+
+            if (localRoleObject && localRoleObject.word) {
+                document.getElementById('local-word-display').textContent = localRoleObject.word;
+                document.getElementById('arena-sticky-word-val').textContent = localRoleObject.word;
+            }
+
+            switchViewLayout(roomData.gameState);
+
+            if (roomData.gameState === "reveal") {
+                document.getElementById('reveal-countdown-node').textContent = roomData.timerSeconds;
+                if (isHostUser && roomData.timerSeconds > 0) {
+                    triggerHostTickDown(roomRef, roomData.timerSeconds - 1, "explain", 1000); // Strict 1000ms loop
+                }
+            }
+            else if (roomData.gameState === "explain") {
+                renderTurnBasedExplainState(roomData, roomRef);
+            }
+            else if (roomData.gameState === "discuss") {
+                renderChaosDiscussionState(roomData, roomRef);
+            }
+            else if (roomData.gameState === "voting") {
+                renderVotingDashboardGrid(roomData, roomRef);
+            }
+            else if (roomData.gameState === "results") {
+                renderEndResultsView(roomData, roomRef);
+            }
+        }
+
+        function switchViewLayout(state) {
+            document.querySelectorAll('.phase-view').forEach(p => p.classList.remove('active'));
+            const stickyBadge = document.getElementById('arena-sticky-word-badge');
+            
+            if(state === "reveal") {
+                document.getElementById('phase-reveal').classList.add('active');
+                stickyBadge.style.display = "none";
+            }
+            if(state === "explain" || state === "discuss") {
+                document.getElementById('phase-discussion').classList.add('active');
+                stickyBadge.style.display = "block"; // Permanent view across text logs
+            }
+            if(state === "voting") {
+                document.getElementById('phase-voting').classList.add('active');
+                stickyBadge.style.display = "block";
+            }
+            if(state === "results") {
+                document.getElementById('phase-results').classList.add('active');
+                stickyBadge.style.display = "none";
+            }
+        }
+
+        function triggerHostTickDown(roomRef, targetSecs, nextState, delayMs) {
+            if (trackingTimerInterval) clearTimeout(trackingTimerInterval);
+            trackingTimerInterval = setTimeout(async () => {
+                const playBeep = (nextState === "voting" && targetSecs <= 10 && targetSecs > 0);
+                await updateDoc(roomRef, { timerSeconds: targetSecs, playBeepSignal: playBeep });
+                
+                if (targetSecs <= 0) {
+                    let fields = { gameState: nextState, timerSeconds: nextState === "discuss" ? 60 : 0 };
+                    if(nextState === "explain") fields.currentTurnIdx = 0;
+                    await updateDoc(roomRef, fields);
+                }
+            }, delayMs);
+        }
+
+        // Phase 2 Logic: Turn-Based Explanations with automated Bot triggers
+        function renderTurnBasedExplainState(roomData, roomRef) {
+            const currentSpeaker = currentPlayers[roomData.currentTurnIdx];
+            const isMyTurnToSpeak = (currentSpeaker.uid === activeAgent.uid);
+            const isBotTurn = currentSpeaker.uid.startsWith("bot_");
+
+            document.getElementById('game-timer-banner').textContent = "Phase 1: Lineup Explanations";
+            document.getElementById('game-turn-prompt-box').innerHTML = `Active Speaker: <span>${currentSpeaker.name}</span>`;
+
+            renderChatLogLayout(roomData.chatMessages || []);
+
+            const input = document.getElementById('arena-chat-input');
+            const sendBtn = document.getElementById('arena-chat-send');
+
+            if (isMyTurnToSpeak && !isBotTurn) {
+                input.disabled = false; input.placeholder = "Explain your card concept here..."; sendBtn.disabled = false;
+                sendBtn.onclick = () => submitPlayerTurnMessage(roomRef, roomData.chatMessages || [], roomData.currentTurnIdx);
+            } else {
+                input.disabled = true; input.placeholder = `Waiting for ${currentSpeaker.name} to explain...`; sendBtn.disabled = true;
+            }
+
+            // HOST HANDLES THE AUTOMATED BOT TURN EXECUTIONS
+            if (isHostUser && isBotTurn) {
+                if (botActionTimeout) clearTimeout(botActionTimeout);
+                botActionTimeout = setTimeout(async () => {
+                    const log = roomData.chatMessages || [];
+                    const randomPhrase = botPhrases[Math.floor(Math.random() * botPhrases.length)];
+                    const updatedMessages = [...log, { senderUid: currentSpeaker.uid, senderName: currentSpeaker.name, body: randomPhrase }];
+                    
+                    const isLastSpeaker = (roomData.currentTurnIdx >= 3);
+                    await updateDoc(roomRef, {
+                        chatMessages: updatedMessages,
+                        currentTurnIdx: isLastSpeaker ? 0 : roomData.currentTurnIdx + 1,
+                        gameState: isLastSpeaker ? "discuss" : "explain",
+                        timerSeconds: isLastSpeaker ? 60 : 0
+                    });
+                }, 1500); // 1.5 Second simulation delay
+            }
+        }
+
+        async function submitPlayerTurnMessage(roomRef, log, currentIdx) {
+            const input = document.getElementById('arena-chat-input');
+            const txt = input.value.trim(); if(!txt) return;
+
+            const updatedMessages = [...log, { senderUid: activeAgent.uid, senderName: localRoleObject.name, body: txt }];
+            input.value = "";
+
+            const isLastSpeaker = (currentIdx >= 3);
+            await updateDoc(roomRef, {
+                chatMessages: updatedMessages,
+                currentTurnIdx: isLastSpeaker ? 0 : currentIdx + 1,
+                gameState: isLastSpeaker ? "discuss" : "explain",
+                timerSeconds: isLastSpeaker ? 60 : 0
+            });
+        }
+
+        // Phase 3 Logic: General Discussion
+        function renderChaosDiscussionState(roomData, roomRef) {
+            const timerBanner = document.getElementById('game-timer-banner');
+            timerBanner.textContent = `General Debate: ${roomData.timerSeconds}s Remaining`;
+            document.getElementById('game-turn-prompt-box').innerHTML = `STAGING COMMONS: <span>OPEN MIC FREE DISCUSS</span>`;
+
+            if (roomData.timerSeconds <= 10) {
+                timerBanner.className = "timer-banner panic";
+                if(roomData.playBeepSignal) playPepSound();
+            } else {
+                timerBanner.className = "timer-banner";
+            }
+
+            renderChatLogLayout(roomData.chatMessages || []);
+
+            const input = document.getElementById('arena-chat-input');
+            const sendBtn = document.getElementById('arena-chat-send');
+
+            input.disabled = false; input.placeholder = "Defend or accuse suspects..."; sendBtn.disabled = false;
+            sendBtn.onclick = () => submitChaosChatMessage(roomRef, roomData.chatMessages || []);
+
+            if (isHostUser && roomData.timerSeconds > 0) {
+                triggerHostTickDown(roomRef, roomData.timerSeconds - 1, "voting", 1000);
+            }
+        }
+
+        async function submitChaosChatMessage(roomRef, log) {
+            const input = document.getElementById('arena-chat-input'); const txt = input.value.trim(); if(!txt) return;
+            const updated = [...log, { senderUid: activeAgent.uid, senderName: localRoleObject.name, body: txt }];
+            input.value = "";
+            await updateDoc(roomRef, { chatMessages: updated });
+        }
+
+        function renderChatLogLayout(messages) {
+            const container = document.getElementById('arena-chat-container');
+            const userAtBottom = (container.scrollHeight - container.scrollTop <= container.clientHeight + 40);
+            container.innerHTML = '';
+
+            messages.forEach(msg => {
+                const node = document.createElement('div');
+                node.className = `chat-msg ${msg.senderUid === activeAgent.uid ? 'self' : ''}`;
+                node.innerHTML = `<div class="sender-tag">${msg.senderName}</div><div>${msg.body}</div>`;
+                container.appendChild(node);
+            });
+            if(userAtBottom) container.scrollTop = container.scrollHeight;
+        }
+
+        // Phase 4 Logic: Interactive Voting Grid + Host Automated Bot Voting Choices
+        function renderVotingDashboardGrid(roomData, roomRef) {
+            const container = document.getElementById('arena-voting-grid');
+            container.innerHTML = '';
+
+            const isBotUserActive = activeAgent.uid.startsWith("bot_");
+            const hasVoted = (localRoleObject.vote && localRoleObject.vote !== "");
+
+            currentPlayers.forEach(p => {
+                const btn = document.createElement('button');
+                btn.className = "vote-node-btn";
+                btn.textContent = p.name;
+                if(hasVoted || isBotUserActive) btn.disabled = true;
+
+                btn.onclick = async () => {
+                    const mapped = currentPlayers.map(pl => {
+                        if (pl.uid === activeAgent.uid) pl.vote = p.uid;
+                        return pl;
+                    });
+                    await updateDoc(roomRef, { players: mapped });
+                    evaluateSimultaneousVotingCompletion(roomRef, mapped);
+                };
+                container.appendChild(btn);
+            });
+
+            // HOST HANDLES BOT RANDOM VOTES INSTANTLY
+            if (isHostUser) {
+                let botNeedsToVote = false;
+                const automatedVotesList = currentPlayers.map(pl => {
+                    if (pl.uid.startsWith("bot_") && (!pl.vote || pl.vote === "")) {
+                        // Pick a completely random target player profile from the room roster
+                        const randomTarget = currentPlayers[Math.floor(Math.random() * currentPlayers.length)];
+                        pl.vote = randomTarget.uid;
+                        botNeedsToVote = true;
+                    }
+                    return pl;
+                });
+
+                if (botNeedsToVote) {
+                    updateDoc(roomRef, { players: automatedVotesList }).then(() => {
+                        evaluateSimultaneousVotingCompletion(roomRef, automatedVotesList);
+                    });
+                }
+            }
+        }
+
+        async function evaluateSimultaneousVotingCompletion(roomRef, playerList) {
+            const totalDone = playerList.filter(p => p.vote && p.vote !== "").length;
+            if (totalDone < 4) return;
+
+            let tally = {}; playerList.forEach(p => tally[p.uid] = 0);
+            playerList.forEach(p => tally[p.vote]++);
+
+            let maxVotes = -1; let targetVotedUid = null; let isDraw = false;
+            for(const uid in tally) {
+                if(tally[uid] > maxVotes) { maxVotes = tally[uid]; targetVotedUid = uid; isDraw = false; }
+                else if(tally[uid] === maxVotes) { isDraw = true; }
+            }
+
+            await updateDoc(roomRef, {
+                gameState: "results",
+                verdictVotedUid: isDraw ? "DRAW" : targetVotedUid
+            });
+        }
+
+        // Phase 5 Logic: Verdict Presentation Scoreboard
+        function renderEndResultsView(roomData, roomRef) {
+            const spyNode = currentPlayers.find(p => p.role === "Spy");
+            const words = roomData.wordsCache;
+
+            document.getElementById('summary-actual-spy').textContent = spyNode.name;
+            document.getElementById('summary-civ-word').textContent = words.civilian;
+            document.getElementById('summary-spy-word').textContent = words.spy;
+
+            const banner = document.getElementById('verdict-title-banner');
+
+            if (roomData.verdictVotedUid === "DRAW") {
+                banner.textContent = "DRAW ENCOUNTERED"; banner.className = "verdict-banner v-draw";
+                document.getElementById('summary-voted-target').textContent = "TIE LOCKOUT - NO ELIMINATION";
+            } else {
+                const votedUser = currentPlayers.find(p => p.uid === roomData.verdictVotedUid);
+                document.getElementById('summary-voted-target').textContent = votedUser ? votedUser.name : "Unknown Operative";
+
+                if (roomData.verdictVotedUid === spyNode.uid) {
+                    banner.textContent = "CREW WINS"; banner.className = "verdict-banner v-crew";
+                } else {
+                    banner.textContent = "SPY INFILTRATOR WINS"; banner.className = "verdict-banner v-spy";
+                }
+            }
+
+            const footer = document.getElementById('result-controls-slot');
+            footer.innerHTML = '';
+
+            if (isHostUser) {
+                const nextBtn = document.createElement('button');
+                nextBtn.className = "btn btn-next"; nextBtn.textContent = "Deploy Next Mission";
+                nextBtn.onclick = () => triggerLobbyResetCycle(roomRef);
+
+                const endBtn = document.createElement('button');
+                endBtn.className = "btn btn-exit"; endBtn.textContent = "Teardown Server Room";
+                endBtn.onclick = () => clearServerDocumentInstance(roomRef);
+
+                footer.appendChild(nextBtn); footer.appendChild(endBtn);
+            } else {
+                const stayBtn = document.createElement('button');
+                stayBtn.className = "btn btn-next"; stayBtn.textContent = "Return to Staging Lobby";
+                stayBtn.onclick = () => returnToStagingLobby(roomRef);
+
+                footer.appendChild(stayBtn);
+            }
+        }
+
+        async function triggerLobbyResetCycle(roomRef) {
+            const words = await fetchNewWordPair();
+            const spyIndex = Math.floor(Math.random() * 4);
+
+            const clearedPlayers = currentPlayers.map((p, idx) => {
+                const isSpy = (idx === spyIndex);
+                const isBot = p.uid.startsWith("bot_");
+                return {
+                    uid: p.uid, name: p.name, isHost: p.isHost, ready: (p.isHost || isBot),
+                    role: isSpy ? "Spy" : "Civilian",
+                    word: isSpy ? words.spy : words.civilian,
+                    vote: ""
+                };
+            });
+
+            await updateDoc(roomRef, {
+                players: clearedPlayers,
+                gameState: "reveal",
+                status: "playing",
+                timerSeconds: 5,
+                chatMessages: [],
+                wordsCache: words,
+                verdictVotedUid: ""
+            });
+        }
+
+        async function returnToStagingLobby(roomRef) {
+            roomUnsubscribe();
+            window.location.href = `room.html#code=${activeRoomCode}`;
+        }
+
+        async function clearServerDocumentInstance(roomRef) {
+            roomUnsubscribe(); await deleteDoc(roomRef); window.location.href = 'mp.html';
+        }
+    </script>
+</body>
+</html>

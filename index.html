@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="description" content="Who's The Spy - Arena AI. A thrilling multiplayer social deduction game powered by Gemini 1.5 Flash AI bots.">
+    <meta name="keywords" content="Who's The Spy, Arena AI, Gemini AI Game, Multiplayer Spy Game, AI board game">
+    <meta name="robots" content="index, follow">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <title>Who's The Spy</title>
+    <style>
+        /* Reset and Full Screen Lock */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0c10;
+            font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Centered Flex Container that adapts to any screen size */
+        .wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .intro-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Professional Studio Text Animation */
+        .studio-text {
+            position: absolute;
+            font-size: clamp(1.2rem, 4vw, 2.2rem); /* Dynamic sizing based on device screen */
+            font-weight: 300;
+            letter-spacing: 0.6rem;
+            color: #45f3ff;
+            text-transform: uppercase;
+            opacity: 0;
+            animation: studioFade 2.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        /* Game Title Animation (Pushes up smoothly after Studio text) */
+        .game-title {
+            position: absolute;
+            font-size: clamp(2rem, 7vw, 4.5rem); /* Scales perfectly from mobile to desktop */
+            font-weight: 900;
+            letter-spacing: 0.1rem;
+            text-transform: uppercase;
+            color: #ff3838;
+            text-shadow: 0 0 20px rgba(255, 56, 56, 0.4);
+            opacity: 0;
+            animation: titlePushUp 2.2s cubic-bezier(0.25, 1, 0.5, 1) 2.2s forwards;
+        }
+
+        .game-title span {
+            color: #ffffff;
+            text-shadow: none;
+        }
+
+        /* --- Animation Timings & Effects --- */
+        @keyframes studioFade {
+            0% {
+                opacity: 0;
+                transform: scale(0.9);
+                filter: blur(10px);
+            }
+            20%, 80% {
+                opacity: 1;
+                transform: scale(1);
+                filter: blur(0px);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(1.05);
+                filter: blur(8px);
+            }
+        }
+
+        @keyframes titlePushUp {
+            0% {
+                opacity: 0;
+                transform: translateY(40px);
+                filter: blur(10px);
+            }
+            20%, 85% {
+                opacity: 1;
+                transform: translateY(0);
+                filter: blur(0px);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-30px);
+                filter: blur(10px);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <div class="intro-container">
+            <h2 class="studio-text">PP Studio Presents</h2>
+            
+            <h1 class="game-title">Who's The <span>Spy</span></h1>
+        </div>
+    </div>
+
+    <script>
+        // Smooth transition to auth.html exactly when the title animation ends
+        setTimeout(() => {
+            window.location.href = 'auth.html';
+        }, 4400);
+    </script>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Who's The Spy - Multiplayer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b0c10;
+            font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #ffffff;
+        }
+
+        .wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: radial-gradient(circle at center, #1f2833 0%, #0b0c10 100%);
+        }
+
+        .mp-card {
+            background-color: rgba(26, 34, 46, 0.85);
+            border: 1px solid #ff3838;
+            border-radius: 16px;
+            padding: 40px 30px;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(255, 56, 56, 0.15);
+            backdrop-filter: blur(10px);
+        }
+
+        h2 {
+            font-size: clamp(1.6rem, 5vw, 2.2rem);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ffffff;
+        }
+
+        h2 span { color: #ff3838; }
+
+        p.subtitle {
+            color: #c5a880;
+            font-size: 0.95rem;
+            margin-bottom: 35px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-create {
+            background-color: #ff3838;
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(255, 56, 56, 0.2);
+        }
+
+        .btn-create:hover {
+            background-color: #e02424;
+            transform: translateY(-2px);
+        }
+
+        .btn-create:disabled, .btn-join:disabled {
+            background-color: #2c3540;
+            color: #778290;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .divider {
+            margin: 30px 0;
+            display: flex;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .divider::before, .divider::after {
+            content: "";
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            height: 1px;
+            margin: 0 10px;
+        }
+
+        .join-container { text-align: left; }
+
+        label {
+            display: block;
+            color: #45f3ff;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 14px;
+            background-color: #0b0c10;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-align: center;
+            text-transform: uppercase;
+            outline: none;
+        }
+
+        input[type="text"]:focus { border-color: #45f3ff; }
+
+        .btn-join {
+            width: auto;
+            padding: 0 25px;
+            background-color: #45f3ff;
+            color: #0b0c10;
+        }
+
+        .btn-join:hover { box-shadow: 0 0 15px rgba(69, 243, 255, 0.4); }
+        .error-text { color: #ff3838; font-size: 0.85rem; margin-top: 8px; display: none; }
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            color: rgba(255, 255, 255, 0.4);
+            text-decoration: none;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .back-link:hover { color: #ffffff; }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <div class="mp-card">
+            <h2>Multiplayer <span>HQ</span></h2>
+            <p class="subtitle">Online Covert Operations</p>
+
+            <button class="btn btn-create" id="create-room-btn">Establish New Room</button>
+
+            <div class="divider">Or</div>
+
+            <div class="join-container">
+                <label for="room-code-input">Intercept Order Code</label>
+                <div class="input-row">
+                    <input type="text" id="room-code-input" maxlength="5" placeholder="XXXXX" autocomplete="off">
+                    <button class="btn btn-join" id="join-room-btn">Join</button>
+                </div>
+                <div class="error-text" id="mp-error-msg">Error: Room designation untraceable.</div>
+            </div>
+
+            <a href="home.html" class="back-link">← Return to Dashboard</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // ⚠️ USE YOUR EXACT CONFIGURATION DETAILS HERE
+const firebaseConfig = {
+  apiKey: "AIzaSyCu6MtxYS4qRijMx7uj7XD9Hs4QAh2hpQY",
+  authDomain: "whoisspy-54c23.firebaseapp.com",
+  projectId: "whoisspy-54c23",
+  storageBucket: "whoisspy-54c23.firebasestorage.app",
+  messagingSenderId: "924220567982",
+  appId: "1:924220567982:web:063786b47d4d61a738983f",
+  measurementId: "G-3SVDTL3F9F"
+};
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let activeAgent = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = 'auth.html';
+            } else {
+                activeAgent = user;
+            }
+        });
+
+        const createBtn = document.getElementById('create-room-btn');
+        const joinBtn = document.getElementById('join-room-btn');
+        const codeInput = document.getElementById('room-code-input');
+        const errorMsg = document.getElementById('mp-error-msg');
+
+        function generate5DigitCode() {
+            return Math.floor(10000 + Math.random() * 90000).toString();
+        }
+
+        createBtn.addEventListener('click', async () => {
+            if (!activeAgent) return;
+            
+            createBtn.disabled = true;
+            createBtn.textContent = "Securing Channel...";
+            errorMsg.style.display = 'none';
+
+            try {
+                const newRoomCode = generate5DigitCode();
+                const roomRef = doc(db, "rooms", newRoomCode);
+
+                const agentDoc = await getDoc(doc(db, "users", activeAgent.uid));
+                const agentName = agentDoc.exists() ? agentDoc.data().displayName : "Unknown Agent";
+
+                await setDoc(roomRef, {
+                    roomCode: newRoomCode,
+                    hostUid: activeAgent.uid,
+                    hostName: agentName,
+                    status: "waiting",
+                    createdAt: new Date().toISOString(),
+                    players: [] // Empty initially; room.html will populate this safely
+                });
+
+                // FIX: Redirect using Hash Fragment (#) instead of Query Parameter (?)
+                window.location.href = `room.html#code=${newRoomCode}`;
+
+            } catch (err) {
+                console.error(err);
+                alert("Failed to build room: " + err.message);
+                createBtn.disabled = false;
+                createBtn.textContent = "Establish New Room";
+            }
+        });
+
+        joinBtn.addEventListener('click', async () => {
+            const enteredCode = codeInput.value.trim().toUpperCase();
+            errorMsg.style.display = 'none';
+
+            if (enteredCode.length !== 5) {
+                errorMsg.textContent = "Invalid Structure: Code must be 5 digits.";
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            joinBtn.disabled = true;
+
+            try {
+                const roomRef = doc(db, "rooms", enteredCode);
+                const roomSnap = await getDoc(roomRef);
+
+                if (!roomSnap.exists()) {
+                    errorMsg.textContent = "Operation Aborted: Room not found.";
+                    errorMsg.style.display = 'block';
+                    joinBtn.disabled = false;
+                    return;
+                }
+
+                if (roomSnap.data().status !== "waiting") {
+                    errorMsg.textContent = "Access Denied: Mission is already in progress.";
+                    errorMsg.style.display = 'block';
+                    joinBtn.disabled = false;
+                    return;
+                }
+
+                // FIX: Redirect using Hash Fragment (#) instead of Query Parameter (?)
+                window.location.href = `room.html#code=${enteredCode}`;
+
+            } catch (err) {
+                errorMsg.textContent = "Error: Network intercept drop.";
+                errorMsg.style.display = 'block';
+                joinBtn.disabled = false;
+            }
+        });
+
+        codeInput.addEventListener('input', () => {
+            codeInput.value = codeInput.value.replace(/[^0-9]/g, '');
+        });
+    </script>
+</body>
+</html>
